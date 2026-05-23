@@ -299,7 +299,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _index = 0;
+  int _index = 2; // Dashboard is default
 
   void _refreshAll() {
     setState(() {});
@@ -596,8 +596,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       children: [
                         FilledButton.icon(
                           style: FilledButton.styleFrom(
-                            backgroundColor: Colors.red.shade600,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.red.shade700,
+                            foregroundColor: Colors.red.shade50,
                           ),
                           onPressed: () => _upsertTransaction(
                             members,
@@ -609,8 +609,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         const SizedBox(width: 8),
                         FilledButton.icon(
                           style: FilledButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.green.shade50,
                           ),
                           onPressed: () => _upsertTransaction(
                             members,
@@ -637,9 +637,36 @@ class _TransactionsPageState extends State<TransactionsPage> {
                             final directionText = tx.ownerToMember
                                 ? '$_ownerName -> ${tx.receiverMemberName ?? 'Member'}'
                                 : '${tx.giverName} -> $_ownerName';
-                            return Card(
-                              child: InkWell(
-                                onTap: () => _upsertTransaction(members, tx: tx),
+
+                            Color borderColor;
+                            Color backgroundColor;
+                            IconData iconData;
+
+                            if (tx.isCompleted) {
+                              borderColor = Colors.blue.shade600;
+                              backgroundColor = const Color.fromARGB(255, 0, 5, 8).withValues(alpha: 0.3);
+                              iconData = Icons.check_circle;
+                            } else if (tx.ownerToMember) {
+                              borderColor = Colors.green.shade600;
+                              backgroundColor = const Color.fromARGB(255, 0, 9, 1).withValues(alpha: 0.3);
+                              iconData = Icons.call_received_rounded;
+                            } else {
+                              borderColor = Colors.red.shade600;
+                              backgroundColor = const Color.fromARGB(255, 3, 0, 0).withValues(alpha: 0.3);
+                              iconData = Icons.call_made_rounded;
+                            }
+
+                            return InkWell(
+                              onTap: () => _upsertTransaction(members, tx: tx),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: backgroundColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: borderColor,
+                                    width: 1.5,
+                                  ),
+                                ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
@@ -647,7 +674,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                     children: [
                                       Row(
                                         children: [
-                                          Expanded(child: Text(directionText)),
+                                          Icon(iconData, color: borderColor, size: 20),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              directionText,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
                                           Text(
                                             _money.format(tx.amount),
                                             style: const TextStyle(
@@ -656,11 +692,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 8),
                                       Text(
                                         tx.reason,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.bodySmall,
                                       ),
                                       const SizedBox(height: 8),
                                       Row(
@@ -750,54 +787,121 @@ class _DashboardPageState extends State<DashboardPage> {
         return ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.account_balance_wallet),
-                title: Text('Total Came To $_ownerName'),
-                subtitle: Text(_money.format(data.totalPaidToOwner)),
+            // Top Summary Cards
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade900, Colors.green.shade800],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(color: Colors.green.shade700),
               ),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.pending_actions),
-                title: Text('$_ownerName Should Pay (Pending)'),
-                subtitle: Text(_money.format(data.totalOwnerShouldPay)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.swap_horiz),
-                title: const Text('Total Transactions'),
-                subtitle: Text('${data.transactionCount} deals'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text('Reports', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_view_week),
-                title: const Text('Weekly'),
-                subtitle: Text(
-                  'In: ${_money.format(data.weeklyIncoming)} | Out: ${_money.format(data.weeklyOutgoing)}',
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.call_received_rounded,
+                            color: Colors.green.shade300, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total Received',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.green.shade300,
+                                    ),
+                              ),
+                              Text(
+                                _money.format(data.totalPaidToOwner),
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green.shade100,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Money came to $_ownerName from members',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green.shade400,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_month),
-                title: const Text('Monthly'),
-                subtitle: Text(
-                  'In: ${_money.format(data.monthlyIncoming)} | Out: ${_money.format(data.monthlyOutgoing)}',
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [Colors.red.shade900, Colors.red.shade800],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(color: Colors.red.shade700),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.call_made_rounded,
+                            color: Colors.red.shade300, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total Pending Payment',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.red.shade300,
+                                    ),
+                              ),
+                              Text(
+                                _money.format(data.totalOwnerShouldPay),
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.red.shade100,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '$_ownerName owes to members (pending)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text('Member Summary', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             if (data.members.isEmpty)
               const Card(
                 child: Padding(
@@ -1607,6 +1711,7 @@ class DashboardData {
     required this.totalPaidToOwner,
     required this.totalOwnerShouldPay,
     required this.transactionCount,
+    required this.uncompletedTransactionCount,
     required this.weeklyIncoming,
     required this.weeklyOutgoing,
     required this.monthlyIncoming,
@@ -1617,6 +1722,7 @@ class DashboardData {
   final double totalPaidToOwner;
   final double totalOwnerShouldPay;
   final int transactionCount;
+  final int uncompletedTransactionCount;
   final double weeklyIncoming;
   final double weeklyOutgoing;
   final double monthlyIncoming;
@@ -1641,11 +1747,18 @@ class MemberProfilePage extends StatefulWidget {
 class _MemberProfilePageState extends State<MemberProfilePage> {
   final _money = NumberFormat.currency(symbol: 'LKR ', decimalDigits: 2);
   late MemberSummary _member;
+  late Future<List<TransactionRecord>> _futureTransactions;
 
   @override
   void initState() {
     super.initState();
     _member = widget.member;
+    _loadTransactions();
+  }
+
+  void _loadTransactions() {
+    _futureTransactions = DbService.instance.getMemberTransactions(_member.id);
+    setState(() {});
   }
 
   Future<void> _completeBalance() async {
@@ -1664,6 +1777,7 @@ class _MemberProfilePageState extends State<MemberProfilePage> {
     setState(() {
       _member = latest;
     });
+    _loadTransactions();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Balance completed and set to zero.')),
     );
@@ -1677,6 +1791,12 @@ class _MemberProfilePageState extends State<MemberProfilePage> {
         : net < 0
             ? 'Will receive'
             : 'Balanced';
+    final statusColor = net > 0
+        ? Colors.red.shade700
+        : net < 0
+            ? Colors.green.shade700
+            : Colors.amber.shade700;
+
     return Scaffold(
       appBar: AppBar(title: Text(_member.name)),
       body: ListView(
@@ -1694,14 +1814,75 @@ class _MemberProfilePageState extends State<MemberProfilePage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 6),
-                  Text('Status: $statusText'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 8,
+                        backgroundColor: statusColor.withValues(alpha: 0.18),
+                        child: Icon(
+                          Icons.attach_money_rounded,
+                          color: statusColor,
+                          size: 10,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
-                  Text('Given: ${_money.format(_member.givenTotal)}'),
-                  Text('Received: ${_money.format(_member.receivedTotal)}'),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Net: ${_money.format(net)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Column(
+                        children: [
+                          Text(
+                            'Given',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _money.format(_member.givenTotal),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            'Received',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _money.format(_member.receivedTotal),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            'Net Balance',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _money.format(net),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1713,7 +1894,403 @@ class _MemberProfilePageState extends State<MemberProfilePage> {
             icon: const Icon(Icons.handshake_rounded),
             label: Text('Complete Balance with ${widget.ownerName}'),
           ),
+          const SizedBox(height: 16),
+          Text(
+            'Transaction History',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          FutureBuilder<List<TransactionRecord>>(
+            future: _futureTransactions,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final transactions = snapshot.data!;
+              final memberTransactions = transactions
+                  .where((tx) =>
+                      tx.giverId == _member.id ||
+                      tx.receiverMemberId == _member.id)
+                  .toList();
+
+              if (memberTransactions.isEmpty) {
+                return const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('No transactions yet.'),
+                  ),
+                );
+              }
+
+              return Column(
+                children: List.generate(memberTransactions.length, (index) {
+                  final tx = memberTransactions[index];
+                  final isGiver = tx.giverId == _member.id;
+                  final directionText = isGiver
+                      ? '${_member.name} → ${tx.receiverType == ReceiverType.owner ? widget.ownerName : (tx.receiverMemberName ?? 'Member')}'
+                      : '${tx.giverName} → ${_member.name}';
+
+                  Color backgroundColor;
+                  Color textColor;
+                  IconData iconData;
+
+                  if (tx.isCompleted) {
+                    backgroundColor = Colors.blue.shade900;
+                    textColor = Colors.blue.shade300;
+                    iconData = Icons.check_circle;
+                  } else if (isGiver) {
+                    backgroundColor = Colors.red.shade900;
+                    textColor = Colors.red.shade300;
+                    iconData = Icons.call_made_rounded;
+                  } else {
+                    backgroundColor = Colors.green.shade900;
+                    textColor = Colors.green.shade300;
+                    iconData = Icons.call_received_rounded;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: textColor.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(iconData, color: textColor, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    directionText,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  _money.format(tx.amount),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              tx.reason,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textColor.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                  DateFormat('yyyy-MM-dd HH:mm').format(tx.dealAt),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textColor.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                                const Spacer(),
+                                if (tx.isCompleted)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade200.withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Completed',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class ReportDetailPage extends StatefulWidget {
+  const ReportDetailPage({
+    super.key,
+    required this.title,
+    required this.period,
+    required this.ownerName,
+  });
+
+  final String title;
+  final String period;
+  final String ownerName;
+
+  @override
+  State<ReportDetailPage> createState() => _ReportDetailPageState();
+}
+
+class _ReportDetailPageState extends State<ReportDetailPage> {
+  final _money = NumberFormat.currency(symbol: 'LKR ', decimalDigits: 2);
+  late Future<List<TransactionRecord>> _futureTransactions;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  void _loadTransactions() {
+    _futureTransactions = DbService.instance.getTransactionsByPeriod(widget.period);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: FutureBuilder<List<TransactionRecord>>(
+        future: _futureTransactions,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final transactions = snapshot.data!;
+
+          if (transactions.isEmpty) {
+            return const Center(
+              child: Text('No transactions for this period.'),
+            );
+          }
+
+          double totalIncoming = 0;
+          double totalOutgoing = 0;
+
+          for (final tx in transactions) {
+            if (tx.receiverType == ReceiverType.owner) {
+              totalIncoming += tx.amount;
+            } else if (tx.giverType == 'owner') {
+              totalOutgoing += tx.amount;
+            }
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [Colors.teal.shade50, Colors.teal.shade100],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(color: Colors.teal.shade200),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Column(
+                            children: [
+                              Text(
+                                'Total Incoming',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.green.shade700,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _money.format(totalIncoming),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            width: 1,
+                            height: 60,
+                            color: Colors.teal.shade200,
+                          ),
+                          Column(
+                            children: [
+                              Text(
+                                'Total Outgoing',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.red.shade700,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _money.format(totalOutgoing),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.red.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Transactions',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              ...transactions.map((tx) {
+                final isOwnerReceiving = tx.receiverType == ReceiverType.owner;
+                final directionText = isOwnerReceiving
+                    ? '${tx.giverName} → ${widget.ownerName}'
+                    : '${widget.ownerName} → ${tx.receiverMemberName ?? 'Member'}';
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isOwnerReceiving ? Colors.green.shade50 : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isOwnerReceiving
+                            ? Colors.green.shade200
+                            : Colors.red.shade200,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isOwnerReceiving
+                                    ? Icons.call_received_rounded
+                                    : Icons.call_made_rounded,
+                                color: isOwnerReceiving
+                                    ? Colors.green.shade700
+                                    : Colors.red.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  directionText,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: isOwnerReceiving
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                _money.format(tx.amount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: isOwnerReceiving
+                                      ? Colors.green.shade700
+                                      : Colors.red.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            tx.reason,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isOwnerReceiving
+                                  ? Colors.green.shade600
+                                  : Colors.red.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                DateFormat('yyyy-MM-dd HH:mm').format(tx.dealAt),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isOwnerReceiving
+                                      ? Colors.green.shade600
+                                      : Colors.red.shade600,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (tx.isCompleted)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade200.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Completed',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.blue.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1912,6 +2489,65 @@ class DbService {
     return rows.map(TransactionRecord.fromMap).toList();
   }
 
+  Future<List<TransactionRecord>> getMemberTransactions(int memberId) async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT
+        t.id,
+        t.giverId,
+        CASE WHEN t.giverType = 'owner' THEN 'Owner' ELSE g.name END AS giverName,
+        t.giverType,
+        t.receiverType,
+        t.receiverMemberId,
+        r.name AS receiverName,
+        t.amount,
+        t.reason,
+        t.dealAt,
+        t.isCompleted,
+        t.completedAt
+      FROM transactions t
+      LEFT JOIN members g ON g.id = t.giverId
+      LEFT JOIN members r ON r.id = t.receiverMemberId
+      WHERE t.giverId = ? OR t.receiverMemberId = ?
+      ORDER BY t.dealAt DESC, t.id DESC
+    ''', [memberId, memberId]);
+    return rows.map(TransactionRecord.fromMap).toList();
+  }
+
+  Future<List<TransactionRecord>> getTransactionsByPeriod(String period) async {
+    final db = await database;
+    final now = DateTime.now();
+    late int startTime;
+
+    if (period == 'Weekly') {
+      startTime = now.subtract(const Duration(days: 7)).millisecondsSinceEpoch;
+    } else if (period == 'Monthly') {
+      startTime = now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
+    }
+
+    final rows = await db.rawQuery('''
+      SELECT
+        t.id,
+        t.giverId,
+        CASE WHEN t.giverType = 'owner' THEN 'Owner' ELSE g.name END AS giverName,
+        t.giverType,
+        t.receiverType,
+        t.receiverMemberId,
+        r.name AS receiverName,
+        t.amount,
+        t.reason,
+        t.dealAt,
+        t.isCompleted,
+        t.completedAt
+      FROM transactions t
+      LEFT JOIN members g ON g.id = t.giverId
+      LEFT JOIN members r ON r.id = t.receiverMemberId
+      WHERE t.dealAt >= ?
+      ORDER BY t.dealAt DESC, t.id DESC
+    ''', [startTime]);
+    return rows.map(TransactionRecord.fromMap).toList();
+  }
+
   Future<void> insertTransaction(TransactionFormResult data) async {
     final db = await database;
     await db.insert('transactions', {
@@ -2027,17 +2663,37 @@ class DbService {
 
   Future<DashboardData> getDashboardData() async {
     final db = await database;
-    final ownerRows = await db.rawQuery(
-      'SELECT IFNULL(SUM(amount), 0) AS total FROM transactions WHERE receiverType = ?',
-      ['owner'],
-    );
-    final ownerPendingRows = await db.rawQuery('''
-      SELECT IFNULL(SUM(amount), 0) AS total
-      FROM transactions
-      WHERE giverType = 'owner' AND receiverType = 'member' AND isCompleted = 0
+    final memberRows = await db.rawQuery('''
+      SELECT
+        m.id,
+        m.name,
+        m.photoPath,
+        IFNULL((SELECT SUM(t1.amount) FROM transactions t1 WHERE t1.giverId = m.id), 0) AS givenTotal,
+        IFNULL((SELECT SUM(t2.amount) FROM transactions t2 WHERE t2.receiverType = 'member' AND t2.receiverMemberId = m.id), 0) AS receivedTotal
+      FROM members m
+      ORDER BY m.name COLLATE NOCASE ASC
     ''');
+
+    double totalReceived = 0;
+    double totalPending = 0;
+
+    for (final row in memberRows) {
+      final givenTotal = (row['givenTotal'] as num).toDouble();
+      final receivedTotal = (row['receivedTotal'] as num).toDouble();
+      final net = givenTotal - receivedTotal;
+
+      if (net < 0) {
+        totalReceived += net.abs();
+      } else if (net > 0) {
+        totalPending += net;
+      }
+    }
+
     final countRows = await db.rawQuery(
       'SELECT COUNT(*) AS count FROM transactions',
+    );
+    final uncompletedRows = await db.rawQuery(
+      'SELECT COUNT(*) AS count FROM transactions WHERE isCompleted = 0',
     );
     final now = DateTime.now();
     final weekStart = now.subtract(const Duration(days: 7)).millisecondsSinceEpoch;
@@ -2056,21 +2712,12 @@ class DbService {
       FROM transactions
       WHERE dealAt >= ?
     ''', [monthStart]);
-    final memberRows = await db.rawQuery('''
-      SELECT
-        m.id,
-        m.name,
-        m.photoPath,
-        IFNULL((SELECT SUM(t1.amount) FROM transactions t1 WHERE t1.giverId = m.id), 0) AS givenTotal,
-        IFNULL((SELECT SUM(t2.amount) FROM transactions t2 WHERE t2.receiverType = 'member' AND t2.receiverMemberId = m.id), 0) AS receivedTotal
-      FROM members m
-      ORDER BY m.name COLLATE NOCASE ASC
-    ''');
 
     return DashboardData(
-      totalPaidToOwner: (ownerRows.first['total'] as num).toDouble(),
-      totalOwnerShouldPay: (ownerPendingRows.first['total'] as num).toDouble(),
+      totalPaidToOwner: totalReceived,
+      totalOwnerShouldPay: totalPending,
       transactionCount: (countRows.first['count'] as num).toInt(),
+      uncompletedTransactionCount: (uncompletedRows.first['count'] as num).toInt(),
       weeklyIncoming: (weeklyRows.first['incoming'] as num).toDouble(),
       weeklyOutgoing: (weeklyRows.first['outgoing'] as num).toDouble(),
       monthlyIncoming: (monthlyRows.first['incoming'] as num).toDouble(),
